@@ -1,24 +1,38 @@
 package com.example.marsphotos.network
 
-
-import retrofit2.Retrofit
-import retrofit2.http.GET
 import com.jakewharton.retrofit2.converter.kotlinx.serialization.asConverterFactory
 import kotlinx.serialization.json.Json
-import okhttp3.MediaType
 import okhttp3.MediaType.Companion.toMediaType
+import retrofit2.Retrofit
+import retrofit2.http.GET
+import retrofit2.http.Query
 
-private const val BASE_URL = "https://android-kotlin-fun-mars-server.appspot.com"
+private const val BASE_URL = "https://rickandmortyapi.com/api/"
+
+private val json = Json {
+    ignoreUnknownKeys = true
+    isLenient = true
+    coerceInputValues = true
+}
+
 private val retrofit = Retrofit.Builder()
-    .addConverterFactory(Json.asConverterFactory("application/json".toMediaType()))
+    .addConverterFactory(json.asConverterFactory("application/json".toMediaType()))
     .baseUrl(BASE_URL)
     .build()
-object MarsApi {
-    val retrofitService : MarsApiService by lazy {
-        retrofit.create(MarsApiService::class.java)
-    }
+
+interface RickAndMortyApiService {
+    @GET("character")
+    suspend fun getCharacters(@Query("name") name: String? = null): ApiResponse<CharacterDto>
+
+    @GET("episode")
+    suspend fun getEpisodes(@Query("name") name: String? = null): ApiResponse<EpisodeDto>
+
+    @GET("location")
+    suspend fun getLocations(@Query("name") name: String? = null): ApiResponse<LocationDto>
 }
-interface MarsApiService {
-    @GET("photos")
-    suspend fun getPhotos(): List<MarsPhoto>
+
+object MarsApi {
+    val retrofitService: RickAndMortyApiService by lazy {
+        retrofit.create(RickAndMortyApiService::class.java)
+    }
 }

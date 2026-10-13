@@ -1,18 +1,3 @@
-/*
- * Copyright (C) 2023 The Android Open Source Project
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     https://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 package com.example.marsphotos.ui.screens
 
 import androidx.compose.runtime.getValue
@@ -20,52 +5,154 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.marsphotos.network.Category
+import com.example.marsphotos.network.DisplayItem
 import com.example.marsphotos.network.MarsApi
-import com.example.marsphotos.network.MarsPhoto
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import retrofit2.HttpException
 import java.io.IOException
 
-sealed interface MarsUiState {
+sealed interface RickAndMortyUiState {
     data class Success(
-        val photos: String,
-        val randomPhoto: MarsPhoto // <- Tem de estar declarado aqui!
-    ) : MarsUiState
-    object Error : MarsUiState
-    object Loading : MarsUiState
+        val selectedItem: DisplayItem?,
+        val totalCountInApi: Int,
+        val retrievedCount: Int,
+        val category: Category
+    ) : RickAndMortyUiState
+
+    object Empty : RickAndMortyUiState
+    object Error : RickAndMortyUiState
+    object Loading : RickAndMortyUiState
 }
+
 class MarsViewModel : ViewModel() {
-    /** The mutable State that stores the status of the most recent request */
-    var marsUiState: MarsUiState by  mutableStateOf(MarsUiState.Loading)
+
+    var selectedCategory by mutableStateOf(Category.CHARACTER)
         private set
 
-    /**
-     * Call getMarsPhotos() on init so we can display status immediately.
-     */
+    var searchQuery by mutableStateOf("")
+        private set
+
+    var uiState: RickAndMortyUiState by mutableStateOf(RickAndMortyUiState.Loading)
+        private set
+
+    private var currentItems: List<DisplayItem> = emptyList()
+    private var totalApiCount: Int = 0
+    private var searchJob: Job? = null
+
     init {
-        getMarsPhotos()
+        loadData()
     }
 
-    /**
-     * Gets Mars photos information from the Mars API Retrofit service and updates the
-     * [MarsPhoto] [List] [MutableList].
-     */
-    private fun getMarsPhotos() {
+    fun onCategoryChange(category: Category) {
+        if (selectedCategory != category) {
+            selectedCategory = category
+            searchQuery = ""
+            loadData()
+        }
+    }
+
+    fun onSearchQueryChange(query: String) {
+        searchQuery = query
+        searchJob?.cancel()
+        searchJob = viewModelScope.launch {
+            delay(400)
+            loadData()
+        }
+    }
+
+    fun rollRandomItem() {
+        if (currentItems.isNotEmpty()) {
+            val randomItem = currentItems.random()
+            uiState = RickAndMortyUiState.Success(
+                selectedItem = randomItem,
+                totalCountInApi = totalApiCount,
+                retrievedCount = currentItems.size,
+                category = selectedCategory
+            )
+        }
+    }
+
+    fun loadData() {
         viewModelScope.launch {
-            marsUiState = MarsUiState.Loading
-            marsUiState = try {
-                val listResult = MarsApi.retrofitService.getPhotos()
-                MarsUiState.Success(
-                    "Success: ${listResult.size} Mars photos retrieved",
-                    randomPhoto = listResult.random()
-                )
-            } catch (e: IOException) {
-                MarsUiState.Error
+            uiState = RickAndMortyUiState.Loading
+            try {
+                val queryParam = searchQuery.trim().ifEmpty { null }
+                when (selectedCategory) {
+                    Category.CHARACTER -> {
+                        val response = MarsApi.retrofitService.getCharacters(queryParam)
+                        totalApiCount = response.info?.count ?: response.results.size
+                        currentItems = response.results.map {
+                            DisplayItem(
+                                id = it.id,
+                                name = it.name,
+                                imageUrl = it.image.ifBlank { "https://rickandmortyapi.com/api/character/avatar/1.jpeg" },
+                                label1 = "Status",
+                                value1 = it.status.ifBlank { "Unknown" },
+                                label2 = "Species",
+                                value2 = it.species.ifBlank { "Unknown" }
+                            )
+                        }
+                    }
+                    Category.EPISODE -> {
+                        val response = MarsApi.retrofitService.getEpisodes(queryParam)
+                        totalApiCount = response.info?.count ?: response.results.size
+                        currentItems = response.results.map {
+                            DisplayItem(
+                                id = it.id,
+                                name = it.name,
+                                imageUrl = "https://rickandmortyapi.com/api/character/avatar/19.jpeg",
+                                label1 = "Episode",
+                                value1 = it.episode.ifBlank { "N/A" },
+                                label2 = "Air Date",
+                                value2 = it.airDate.ifBlank { "N/A" }
+                            )
+                        }
+                    }
+                    Category.LOCATION -> {
+                        val response = MarsApi.retrofitService.getLocations(queryParam)
+                        totalApiCount = response.info?.count ?: response.results.size
+                        currentItems = response.results.map {
+                            DisplayItem(
+                                id = it.id,
+                                name = it.name,
+                                imageUrl = "https://rickandmortyapi.com/api/character/avatar/19.jpeg",
+                                label1 = "Type",
+                                value1 = it.type.ifBlank { "Unknown" },
+                                label2 = "Dimension",
+                                value2 = it.dimension.ifBlank { "Unknown" }
+                            )
+                        }
+                    }
+                }
+
+                if (currentItems.isNotEmpty()) {
+                    val randomChoice = currentItems.random()
+                    uiState = RickAndMortyUiState.Success(
+                        selectedItem = randomChoice,
+                        totalCountInApi = totalApiCount,
+                        retrievedCount = currentItems.size,
+                        category = selectedCategory
+                    )
+                } else {
+                    uiState = RickAndMortyUiState.Empty
+                }
             } catch (e: HttpException) {
-                MarsUiState.Error
+                if (e.code() == 404) {
+                    // Rick e Morty API retorna 404 quando nao ha resultados
+                    currentItems = emptyList()
+                    totalApiCount = 0
+                    uiState = RickAndMortyUiState.Empty
+                } else {
+                    uiState = RickAndMortyUiState.Error
+                }
+            } catch (e: IOException) {
+                uiState = RickAndMortyUiState.Error
+            } catch (e: Exception) {
+                uiState = RickAndMortyUiState.Error
             }
         }
     }
 }
-
-
