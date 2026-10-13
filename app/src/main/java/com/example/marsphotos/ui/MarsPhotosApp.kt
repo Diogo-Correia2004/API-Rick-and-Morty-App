@@ -15,7 +15,12 @@ fun MarsPhotosApp() {
     val marsViewModel: MarsViewModel = viewModel()
 
     Scaffold(
-        topBar = { HeaderBar() }
+        topBar = {
+            HeaderBar(
+                selectedCategory = marsViewModel.selectedCategory,
+                onCategorySelected = marsViewModel::onCategoryChange,
+            )
+        }
     ) { paddingValues ->
         Surface(
             modifier = Modifier.fillMaxSize()
