@@ -52,16 +52,17 @@ import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.example.marsphotos.network.Category
 import com.example.marsphotos.network.DisplayItem
+import com.example.marsphotos.ui.theme.DarkSlateAction
+import com.example.marsphotos.ui.theme.PastelHeaderBg
+import com.example.marsphotos.ui.theme.PastelCardBg
+import com.example.marsphotos.ui.theme.ItemCardBg
+import com.example.marsphotos.ui.theme.ActivePillBg
+import com.example.marsphotos.ui.theme.BorderBlue
+import com.example.marsphotos.ui.theme.TextDark
+import com.example.marsphotos.ui.theme.TextMuted
 
-// Colors aligned with the requested pastel & slate palette
-private val PastelHeaderBg = Color(0xFFDCE8F5)
-private val PastelCardBg = Color(0xFFEAF2FC)
-private val ItemCardBg = Color(0xFFE6ECF2)
-private val DarkSlateAction = Color(0xFF1E293B)
-private val ActivePillBg = Color(0xFFD0E2FF)
-private val BorderBlue = Color(0xFF93C5FD)
-private val TextDark = Color(0xFF1E293B)
-private val TextMuted = Color(0xFF64748B)
+
+
 
 @Composable
 fun HomeScreen(
@@ -127,7 +128,7 @@ fun HomeScreen(
                     ItemDisplayCard(item = item)
                 }
 
-                // Botão de Ação
+
                 ActionButton(
                     onRollClicked = onRollClicked
                 )
@@ -138,7 +139,7 @@ fun HomeScreen(
     }
 }
 
-//Barra de Título
+
 @Composable
 fun HeaderBar(
     modifier: Modifier = Modifier
