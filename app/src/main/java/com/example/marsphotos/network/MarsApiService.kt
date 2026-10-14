@@ -22,13 +22,22 @@ private val retrofit = Retrofit.Builder()
 
 interface RickAndMortyApiService {
     @GET("character")
-    suspend fun getCharacters(@Query("name") name: String? = null): ApiResponse<CharacterDto>
+    suspend fun getCharacters(
+        @Query("name") name: String? = null,
+        @Query("page") page: Int? = null
+    ): ApiResponse<CharacterDto>
 
     @GET("episode")
-    suspend fun getEpisodes(@Query("name") name: String? = null): ApiResponse<EpisodeDto>
+    suspend fun getEpisodes(
+        @Query("name") name: String? = null,
+        @Query("page") page: Int? = null
+    ): ApiResponse<EpisodeDto>
 
     @GET("location")
-    suspend fun getLocations(@Query("name") name: String? = null): ApiResponse<LocationDto>
+    suspend fun getLocations(
+        @Query("name") name: String? = null,
+        @Query("page") page: Int? = null
+    ): ApiResponse<LocationDto>
 }
 
 object MarsApi {

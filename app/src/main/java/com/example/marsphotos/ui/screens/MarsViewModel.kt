@@ -40,7 +40,9 @@ class MarsViewModel : ViewModel() {
 
     private var currentItems: List<DisplayItem> = emptyList()
     private var totalApiCount: Int = 0
+    private var totalApiPages: Int = 1
     private var searchJob: Job? = null
+    private var fetchJob: Job? = null
 
     init {
         loadData()
@@ -50,6 +52,7 @@ class MarsViewModel : ViewModel() {
         if (selectedCategory != category) {
             selectedCategory = category
             searchQuery = ""
+            totalApiPages = 1
             loadData()
         }
     }
@@ -59,31 +62,32 @@ class MarsViewModel : ViewModel() {
         searchJob?.cancel()
         searchJob = viewModelScope.launch {
             delay(400)
+            totalApiPages = 1
             loadData()
         }
     }
 
     fun rollRandomItem() {
-        if (currentItems.isNotEmpty()) {
-            val randomItem = currentItems.random()
-            uiState = RickAndMortyUiState.Success(
-                selectedItem = randomItem,
-                totalCountInApi = totalApiCount,
-                retrievedCount = currentItems.size,
-                category = selectedCategory
-            )
-        }
+        // Faz o pedido à API para obter imagens e informações e escolhe uma delas random
+        loadData(fetchRandomPage = true)
     }
 
-    fun loadData() {
-        viewModelScope.launch {
+    fun loadData(fetchRandomPage: Boolean = false) {
+        fetchJob?.cancel()
+        fetchJob = viewModelScope.launch {
             uiState = RickAndMortyUiState.Loading
             try {
                 val queryParam = searchQuery.trim().ifEmpty { null }
+                val pageParam = if (fetchRandomPage && totalApiPages > 1) {
+                    (1..totalApiPages).random()
+                } else {
+                    null
+                }
                 when (selectedCategory) {
                     Category.CHARACTER -> {
-                        val response = MarsApi.retrofitService.getCharacters(queryParam)
+                        val response = MarsApi.retrofitService.getCharacters(queryParam, pageParam)
                         totalApiCount = response.info?.count ?: response.results.size
+                        totalApiPages = response.info?.pages ?: 1
                         currentItems = response.results.map {
                             DisplayItem(
                                 id = it.id,
@@ -97,8 +101,9 @@ class MarsViewModel : ViewModel() {
                         }
                     }
                     Category.EPISODE -> {
-                        val response = MarsApi.retrofitService.getEpisodes(queryParam)
+                        val response = MarsApi.retrofitService.getEpisodes(queryParam, pageParam)
                         totalApiCount = response.info?.count ?: response.results.size
+                        totalApiPages = response.info?.pages ?: 1
                         currentItems = response.results.map {
                             DisplayItem(
                                 id = it.id,
@@ -112,8 +117,9 @@ class MarsViewModel : ViewModel() {
                         }
                     }
                     Category.LOCATION -> {
-                        val response = MarsApi.retrofitService.getLocations(queryParam)
+                        val response = MarsApi.retrofitService.getLocations(queryParam, pageParam)
                         totalApiCount = response.info?.count ?: response.results.size
+                        totalApiPages = response.info?.pages ?: 1
                         currentItems = response.results.map {
                             DisplayItem(
                                 id = it.id,
@@ -144,6 +150,7 @@ class MarsViewModel : ViewModel() {
                     // Rick e Morty API retorna 404 quando nao ha resultados
                     currentItems = emptyList()
                     totalApiCount = 0
+                    totalApiPages = 1
                     uiState = RickAndMortyUiState.Empty
                 } else {
                     uiState = RickAndMortyUiState.Error
