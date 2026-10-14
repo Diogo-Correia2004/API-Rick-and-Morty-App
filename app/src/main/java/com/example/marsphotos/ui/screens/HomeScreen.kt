@@ -151,6 +151,7 @@ fun HomeScreen(
 fun HeaderBar(
     selectedCategory: Category = Category.CHARACTER,
     onCategorySelected: (Category) -> Unit = {},
+    onGetNewDataClicked: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     var expanded by remember { mutableStateOf(false) }
@@ -234,6 +235,29 @@ fun HeaderBar(
                         )
                     }
 
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
+
+                    DropdownMenuItem(
+                        text = {
+                            Text(
+                                text = "Get new Data",
+                                fontWeight = FontWeight.Medium,
+                                color = TextDark
+                            )
+                        },
+                        leadingIcon = {
+                            Icon(
+                                imageVector = Icons.Default.Refresh,
+                                contentDescription = "Get new Data",
+                                tint = Color(0xFF64748B),
+                                modifier = Modifier.size(20.dp)
+                            )
+                        },
+                        onClick = {
+                            expanded = false
+                            onGetNewDataClicked()
+                        }
+                    )
                 }
             }
         }

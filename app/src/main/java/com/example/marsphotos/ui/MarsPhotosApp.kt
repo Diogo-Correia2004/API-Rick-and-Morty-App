@@ -19,6 +19,7 @@ fun MarsPhotosApp() {
             HeaderBar(
                 selectedCategory = marsViewModel.selectedCategory,
                 onCategorySelected = marsViewModel::onCategoryChange,
+                onGetNewDataClicked = marsViewModel::loadData
             )
         }
     ) { paddingValues ->
